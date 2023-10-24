@@ -1,10 +1,10 @@
-function [x_3d, Maincost] = IterRecon_TV_FISTA (g, gamma, mu, ImageSize)
+function [x_3d, Maincost] = IterRecon_TV_FISTA (x0, A, g, gamma, mu, ImageSize)
 % CT Iterative Reconstruction using BM3D Regularization and FISTA algorithm.
 % Solves the optimization (1/2)(||A*W*x-g||_2)^2+gamma*||D*x||_1^{mu}.
 % g are the Line Integral images. x is the 3D reconstructed image, or the optimization variable.
 % AWx are a list of projection images, which are of the same dimension as g.
 % W is a matrix to deal with boundary condition problems.
-fprintf('\n\n\n*******Iterative Reconstruction with BM3D Regularization*******\n\n');
+fprintf('\n\n\n*******Iterative Reconstruction*******\n\n');
 
 % Initialize the input image
 g(g<0)=0;
@@ -12,7 +12,8 @@ g(logical(isnan(g)))=0;
 
 % Initialization.
 N = prod(ImageSize);
-xk = zeros(N,1); vk = xk;
+% xk = zeros(N,1); vk = xk;
+xk = x0(:); vk = xk;
 tk = 1e-06; % Initial step sizes.
 r1 = 0.8; r2 = 0.1;
 
@@ -39,13 +40,13 @@ while (count<=maxIter)
         
         y = (1-theta)*xk + theta*vk;
         
-        FPy = ForwardProj(y);%
+        FPy = ForwardProj(y,A);
         DataDiff_y = FPy-g;
-        BPz1 = BackwardProj(DataDiff_y); 
+        BPz1 = BackwardProj(DataDiff_y, A); 
         DVP_y = DVP_Dx (mu, reshape(y,ImageSize));
         delta_fy = BPz1(:) + gamma/mu*(DVP_y(:));
         
-        x = max(0,y-t*delta_fy);
+        x = min(max(0,y-t*delta_fy),0.2);
         
         % Compute f(y)
         Dy = applyD3D (reshape(y,ImageSize));
@@ -58,7 +59,7 @@ while (count<=maxIter)
         UpperBound_x = fy + sum(delta_fy.*(x-y)) + 1/(2*t)*sum((x-y).^2);
         
         % Compute f(x)
-        FPx = ForwardProj(x);    % Para Version
+        FPx = ForwardProj(x, A);    % Para Version
         DataDiff_x = FPx-g;
         
         Dx = applyD3D (reshape(x,ImageSize));
@@ -98,8 +99,42 @@ while (count<=maxIter)
 end
 
 fprintf('\n\nEnd Optimization.');
-fprintf('\n\n*******Iterative Reconstruction with BM3D Regularization*******\n\n');
+fprintf('\n\n*******Iterative Reconstruction*******\n\n');
 
 x_3d = reshape(x,ImageSize);
 
 end
+
+
+
+function Ax0 = ForwardProj(x0,A)
+
+size1 = A{1}.size(1);
+Ax0 = zeros(size1*numel(A),1);
+for ii = 1:numel(A)
+    Ax0((ii-1)*size1+1:ii*size1) = A{ii}*x0;
+end
+
+
+
+
+end
+
+
+function ATy = BackwardProj(y0,A)
+
+size1 = A{1}.size(1);
+size2 = A{1}.size(2);
+ATy = zeros(size2,1);
+for ii = 1:numel(A)
+    ATy = ATy + A{ii}'*y0((ii-1)*size1+1:ii*size1);
+end
+
+
+
+
+end
+
+
+
+

@@ -3,7 +3,7 @@ close all
 clc
 
 patname = 'T2';
-datatestpath = fullfile('/Users/qihuilyu/Desktop/Data/HDRCT/Datatest/',patname);
+datatestpath = fullfile('/Users/lyuqihui/Desktop/Data/HDRCT/Datatest/',patname);
 load(fullfile(datatestpath,'Datatest.mat'));
 
 % Materials = [Air, Dry

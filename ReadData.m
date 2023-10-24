@@ -3,12 +3,12 @@ clc
 clear
 
 patname = 'T2';
-datapath = fullfile('/Users/qihuilyu/Desktop/Data/HDRCT/RawData/', patname);
+datapath = fullfile('/Users/lyuqihui/Desktop/Data/HDRCT/RawData/', patname);
 ctpath = fullfile(datapath,'CT');
 RTdosepath = fullfile(datapath,'RTDOSE');
 RTplanpath = fullfile(datapath,'RTPLAN');
 RTstpath = fullfile(datapath,'RTst');
-datatestpath = fullfile('/Users/qihuilyu/Desktop/Data/HDRCT/Datatest/',patname);
+datatestpath = fullfile('/Users/lyuqihui/Desktop/Data/HDRCT/Datatest/',patname);
 mkdir(datatestpath)
 
 [CTimage,spatial,dim] = dicomreadVolume(ctpath);
