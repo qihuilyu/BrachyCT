@@ -17,7 +17,6 @@ for iz = 1:param.nz
 end
 
 data3d(isnan(data3d))=0;
-
 data3d = permute(data3d,[1 3 2]);
 
 [xx,zz] = meshgrid(param.xs,param.zs);
@@ -27,6 +26,10 @@ for iy = 1:param.ny
 
     Ratio = (param.ys(iy)+param.DSO)/(param.DSD);
 
+    % if(Ratio<0)
+    %     continue
+    % end
+
     pu = uu*Ratio;
     pv = vv*Ratio;
 
@@ -34,6 +37,9 @@ for iy = 1:param.ny
     pv = (pv - zz(1,1))/(param.dz)+1;
 
     tmp = (interp2((single(data3d(:,:,iy))),(single(pv)),(single(pu)),param.interptype));
+
+    % figure(10);subplot(2,1,1);imshow(data3d(:,:,iy),[])
+    % figure(10);subplot(2,1,2);imshow(tmp,[])
 
     tmp(isnan(tmp))=0;
 

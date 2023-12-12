@@ -7,56 +7,107 @@ datatestpath = fullfile('/Users/lyuqihui/Desktop/Data/HDRCT/Datatest/',patname);
 load(fullfile(datatestpath,'Datatest.mat'));
 
 imgdx = spatial.PixelSpacings(1);
+imgdy = imgdx;
 temp = diff(spatial.PatientPositions);
 imgdz = temp(1,3);
 imgsz = size(CTimage);
 
 offsetpix = 100;
-
-
-
 [CenterOfMass, FOV, deltax, deltay, deltaz]  = GetDwellPos(Mask_prostate,4,4,5,imgdx,imgdx,imgdz);
 
-dx = 0; dy = 0;
-count = 1;
+LAC = imresize(LAC_380keV,1/6);
+LAC = LAC(:,:,1:4:end);
+imgdx = imgdx*6;
+imgdy = imgdy*6;
+imgdz = imgdz*6;
+imgsz = size(LAC);
 
 
 
+%% Parameter setting
+param.nx = imgsz(1); % number of voxels
+param.ny = imgsz(2);
+param.nz = imgsz(3);
+
+param.sx = imgdx*param.nx; % mm (real size)
+param.sy = imgdy*param.ny; % mm
+param.sz = imgdz*param.nz; % mm
+
+%The real detector panel pixel density (number of pixels)
+param.nu = 300;		% number of pixels
+param.nv = 300;
+
+% Detector setting (real size)
+param.su = 500;	% mm (real size)
+param.sv = 500;     % mm
+
+% X-ray source and detector setting
+param.DSD0 = 250;    %  Distance source to detector
+param.DSO0 = 0;	%  X-ray source to object axis distance
+
+% param.DSD = 250;    %  Distance source to detector
+% param.DSO = -5;	%  X-ray source to object axis distance
+
+param.dx = imgdx; % single voxel size
+param.dy = imgdy;
+param.dz = imgdz;
+param.du = param.su/param.nu;
+param.dv = param.sv/param.nv;
+
+param.off_u = 0; param.off_v = 0; % detector rotation shift (real size)
+
+% % % Geometry calculation % % %
+param.xs0 = [-(param.nx-1)/2:1:(param.nx-1)/2]*param.dx;
+param.ys0 = [-(param.ny-1)/2:1:(param.ny-1)/2]*param.dy;
+param.zs0 = [-(param.nz-1)/2:1:(param.nz-1)/2]*param.dz;
+
+param.us0 = (-(param.nu-1)/2:1:(param.nu-1)/2)*param.du + param.off_u;
+param.vs0 = (-(param.nv-1)/2:1:(param.nv-1)/2)*param.dv + param.off_v;
+
+
+%% Make measurement - projection
+% load img128.mat % Ground-truth image
+% M = projection0(param);
+% testproj = reshape(M*double(img(:)),[param.nu, param.nv]);
+% 
+% figure; imshow(testproj,[])
 
 %%
+count = 1;
 for dz = deltaz
-    % for dx = deltax
+    for dx = deltax
         for dy = deltay
-             cg = ct_geom('fan', 'dsd', 250+dx, 'dod', 250+dx, 'dfs', inf, ...
-                'ns', 1024, 'ds', 500/1024, 'offset_s', dy/(500/1024), ...
-                'nt', 1024, 'dt', 500/1024, ...
-                'na', 1, 'orbit', 360,'orbit_start',0,...
-                'pitch',0, 'source_z0', dz);
 
-            ig = image_geom('nx', imgsz(1), 'ny', imgsz(2), 'nz', imgsz(3), ...
-                'dx', imgdx, 'dz', imgdz, ...
-                'offset_x', dy, 'offset_y', dx, 'offset_z', 0);
-             figure; cg.plot([ig])
+            param.DSD = param.DSD0+dy;    %  Distance source to detector
+            param.DSO = param.DSO0+dy;	%  X-ray source to object axis distance
 
-            x0 = LAC_380keV;
-            %         x0(204:207, 51:54, 86) = 10;
-            %          figure;imshow3D(x0,[])
-            % figure;imshow(flip(x0(:,:,100),1),[])
-            f.ptype = 'sf2';
-            A_cpu = Gcone(cg, ig, 'type', f.ptype, 'nthread', 40);
-            A_cpu.arg.mexfun = @jf_mex;
-            A_cpus{count} = A_cpu;
-            y_cpu = A_cpu*x0;
-            y_cpus{count} = y_cpu;
-            
-            ATys{count} = A_cpu'*(y_cpu(:));
+            param.xs = [-(param.nx-1)/2:1:(param.nx-1)/2]*param.dx - dx;
+            param.ys = [-(param.ny-1)/2:1:(param.ny-1)/2]*param.dy;
+            param.zs = [-(param.nz-1)/2:1:(param.nz-1)/2]*param.dz - dz;
 
-            %         figure(1);imshow(y_cpu',[])
-            %         pause(2)
+            param.us = (-(param.nu-1)/2:1:(param.nu-1)/2)*param.du + param.off_u - dx;
+            param.vs = (-(param.nv-1)/2:1:(param.nv-1)/2)*param.dv + param.off_v - dz;
+
+            M{count} = projection0(param);
+            proj(:,:,count) = reshape(M{count}*double(LAC(:)),[param.nu, param.nv]);
+
+            figure(1);imshow(proj(:,:,count),[])
+            % pause(2)
             count = count+1;
-    %     end
+        end
     end
 end
+
+numproj = count-1;
+
+M_all = [];
+for ii = 1:numproj
+    M_all = cat(1, M_all, M{ii});
+end
+
+proj_all = reshape(M_all*double(LAC(:)),[param.nu, param.nv, numproj]);
+figure;imshow3D(proj_all,[])
+
 
 % figure;gif('Projections.gif')
 % for ii = 1:numel(y_cpus)
@@ -65,87 +116,28 @@ end
 %     gif
 % end
 
-% %%
-% for dz = deltaz
-%     for dx = deltax
-%         for dy = deltay
-%             cg = ct_geom('fan', 'dsd', 250+dx, 'dod', 250, 'dfs', inf, ...
-%                 'ns', 1024, 'ds', 500/1024, 'offset_s', dy/(500/1024), ...
-%                 'nt', 1024, 'dt', 500/1024, ...
-%                 'na', 1, 'orbit', 360,'orbit_start',90,...
-%                 'pitch',0, 'source_z0', dz);
-% 
-%             ig = image_geom('nx', imgsz(1), 'ny', imgsz(2), 'nz', imgsz(3), ...
-%                 'dx', imgdx, 'dz', imgdz, ...
-%                 'offset_x', dy, 'offset_y', 0, 'offset_z', 0);
-% 
-% %             figure; cg.plot([ig])
-% 
-%             x0 = LAC_380keV;
-%             %         x0(204:207, 51:54, 86) = 10;
-%             %          figure;imshow3D(x0,[])
-%             % figure;imshow(flip(x0(:,:,100),1),[])
-%             f.ptype = 'sf2';
-%             A_cpu = Gcone(cg, ig, 'type', f.ptype, 'nthread', 40);
-%             A_cpu.arg.mexfun = @jf_mex;
-%             A_cpus{count} = A_cpu;
-%             y_cpu = A_cpu*x0;
-%             y_cpus{count} = y_cpu;
-%             %         figure(1);imshow(y_cpu',[])
-%             %         pause(2)
-%             count = count+1;
-%         end
-%     end
-% end
-% 
-
+%% Create projections
+x1 = LAC;
+y1_all = M_all*x1(:);  
+x2 = permute(LAC,[2,1,3]);
+y2_all = M_all*x2(:);  
+x3 = flip(x1,2);
+y3_all = M_all*x3(:);
+x4 = flip(x2,2);
+y4_all = M_all*x4(:);  
 
 %%
 
-
-% ForBack.applyFP = @(x) for ii = 1:numel(A_cpus) A{ii}*x end;
-% ForBack.applyBP = @(x) A'*x;
-size1 = A_cpu.size(1);
-y_all = zeros(size1*numel(A_cpus),1);
-for ii = 1:numel(y_cpus)
-    y_all((ii-1)*size1+1:ii*size1) = y_cpus{ii};
-end
-
-
-% 
 gamma = 0;
 mu = 1e-05;
 
-[x_TV, Maincost_TV] = IterRecon_TV_FISTA (x0, A_cpus, y_all(:), gamma, mu, [ig.nx, ig.ny, ig.nz]);
+
+x0 = x1;
+x0(x0>0.05) = 0.11;
+
+[x_TV, Maincost_TV] = IterRecon_TV_FISTA_BrachyCT (x0, M_all, y1_all(:), y2_all(:), y3_all(:), y4_all(:), gamma, mu, [param.nx, param.ny, param.nz]);
 
 
 
-figure;
-test = [LAC_380keV x_TV];
-for ii = 1:size(test,3)
-    imshow(test(:,:,ii),[]);
-    exportgraphics(gcf,'testx0.gif','Append',true);
-end
-
-
-
-
-figure;
-test = [reshape(Ax0,[1024,1024,32]) reshape(y_all,[1024,1024,32])];
-for ii = 1:size(test,3)
-    imshow(test(:,:,ii),[]);
-    exportgraphics(gcf,'test.gif','Append',true);
-end
-
-
-
-% x0 = zeros(ig.nx, ig.ny, ig.nz);
-% x0(180:210,250:262,:) = 1;
-% figure;imshow(flip(x0(:,:,100),1),[])
-% f.ptype = 'sf2';
-% A_cpu = Gcone(cg, ig, 'type', f.ptype, 'nthread', 40);
-% A_cpu.arg.mexfun = @jf_mex;
-% y_cpu = A_cpu*x0;
-% figure;imshow(y_cpu,[])
 
 

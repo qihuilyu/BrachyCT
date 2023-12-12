@@ -13,10 +13,7 @@ figure; imshow3D(proj3D,[0,6])
 
 save proj.mat proj 
 
-
-
 %% Sanity check
-
 cg = ct_geom('fan', 'dsd', 1500, 'dod', 400, 'dfs', inf, ...
     'ns', 256, 'ds', 4, 'offset_s', 0, ...
     'nt', 200, 'dt', 4, ...

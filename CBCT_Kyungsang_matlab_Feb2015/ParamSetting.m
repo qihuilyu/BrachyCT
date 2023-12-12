@@ -24,7 +24,7 @@ param.DSO = 1100;	%  X-ray source to object axis distance
 
 % angle setting
 param.dir = -1;   % gantry rotating direction (clock wise/ counter clockwise)
-param.dang = 1; % angular step size (deg)
+param.dang = 360; % angular step size (deg)
 param.deg = 0:param.dang:359; % you can change
 param.deg = param.deg*param.dir;
 param.nProj = length(param.deg);
