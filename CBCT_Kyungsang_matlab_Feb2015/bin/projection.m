@@ -26,9 +26,9 @@ for iy = 1:param.ny
 
     Ratio = (param.ys(iy)+param.DSO)/(param.DSD);
 
-    % if(Ratio<0)
-    %     continue
-    % end
+    if(Ratio<0)
+        continue
+    end
 
     pu = uu*Ratio;
     pv = vv*Ratio;

@@ -29,9 +29,9 @@ for iy = 1:param.ny
     pv = (pv - zz(1,1))/(param.dz)+1;
     [iu,iv] = meshgrid(1:param.nu,1:param.nv);
 
-    % tmp = (interp2((squeeze(single(img(:,iy,:)))),(single(pv)),(single(pu)),'nearest'));
-    % tmp2 = (interp2((squeeze(single(img(:,iy,:)))),(single(pv)),(single(pu)),'linear'));
-    % figure(1);imshow([tmp tmp2],[])
+    tmp = (interp2((squeeze(single(img(:,iy,:)))),(single(pv)),(single(pu)),'nearest'));
+    tmp2 = (interp2((squeeze(single(img(:,iy,:)))),(single(pv)),(single(pu)),'linear'));
+    figure(1);imshow([tmp tmp2],[])
 
     puind1 = floor(pu);
     puind2 = ceil(pu);
@@ -47,7 +47,7 @@ for iy = 1:param.ny
     pvweight1(pvind1==pvind2) = 0.5;
     pvweight2(pvind1==pvind2) = 0.5;
 
-    ind_keep = find(~(round(puind1)<1|round(pvind1)<1|round(puind2)>param.nx|round(pvind2)>param.nz));
+    ind_keep = find(~(round(puind1)<1|round(pvind1)<1|round(pvind2)>param.nx|round(puind2)>param.nz));
     pu = pu(ind_keep);
     pv = pv(ind_keep);
     iu = iu(ind_keep);
@@ -77,17 +77,19 @@ for iy = 1:param.ny
     tmpM3 = sparse(Indproj,Indimg3,disttmp(Indproj).*pweight3,prod(szproj),nmimg);
     tmpM4 = sparse(Indproj,Indimg4,disttmp(Indproj).*pweight4,prod(szproj),nmimg);
     tmpMv2 = tmpM1+tmpM2+tmpM3+tmpM4;
-    M = M + tmpMv2;
 
-    % Indimg = sub2ind([param.nx,param.ny,param.nz],round(pu),iy*ones(size(pv)),round(pv));
-    % Indproj = sub2ind([param.nu,param.nv],iu,iv);
-    % tmpM = sparse(Indproj,Indimg,disttmp(Indproj),prod(szproj),nmimg);
-    % M = M + tmpM;
+    Indimg = sub2ind([param.nx,param.ny,param.nz],round(pu),iy*ones(size(pv)),round(pv));
+    Indproj = sub2ind([param.nu,param.nv],iu,iv);
+    tmpM = sparse(Indproj,Indimg,disttmp(Indproj),prod(szproj),nmimg);
 
-    % tmp3 = reshape(tmpM*img(:),[param.nu,param.nv]);
-    % tmp4 = reshape(tmpMv2*img(:),[param.nu,param.nv]);
-    % figure(1);imshow([[tmp.*disttmp tmp2.*disttmp];[tmp3' tmp4'];[tmp.*disttmp tmp2.*disttmp]-[tmp3' tmp4']],[])
-    % 
+
+
+    tmp3 = reshape(tmpM*img(:),[param.nu,param.nv]);
+    tmp4 = reshape(tmpMv2*img(:),[param.nu,param.nv]);
+    figure(1);imshow([[tmp.*disttmp tmp2.*disttmp];[tmp3 tmp4]],[])
+
+
+    M = M + tmpM;
 
 end
 

@@ -15,11 +15,12 @@ imgsz = size(CTimage);
 offsetpix = 100;
 [CenterOfMass, FOV, deltax, deltay, deltaz]  = GetDwellPos(Mask_prostate,4,4,5,imgdx,imgdx,imgdz);
 
-LAC = imresize(LAC_380keV,1/6);
-LAC = LAC(:,:,1:4:end);
-imgdx = imgdx*6;
-imgdy = imgdy*6;
-imgdz = imgdz*6;
+Nfac = 1;
+LAC = imresize(LAC_380keV,1/Nfac);
+LAC = LAC(:,:,1:Nfac:end);
+imgdx = imgdx*Nfac;
+imgdy = imgdy*Nfac;
+imgdz = imgdz*Nfac;
 imgsz = size(LAC);
 
 
@@ -73,6 +74,9 @@ param.vs0 = (-(param.nv-1)/2:1:(param.nv-1)/2)*param.dv + param.off_v;
 % figure; imshow(testproj,[])
 
 %%
+
+tic
+
 count = 1;
 for dz = deltaz
     for dx = deltax
@@ -88,7 +92,7 @@ for dz = deltaz
             param.us = (-(param.nu-1)/2:1:(param.nu-1)/2)*param.du + param.off_u - dx;
             param.vs = (-(param.nv-1)/2:1:(param.nv-1)/2)*param.dv + param.off_v - dz;
 
-            M{count} = projection0(param);
+            M{count} = projection0(param, LAC);
             proj(:,:,count) = reshape(M{count}*double(LAC(:)),[param.nu, param.nv]);
 
             figure(1);imshow(proj(:,:,count),[])
@@ -98,8 +102,12 @@ for dz = deltaz
     end
 end
 
+toc
+
 numproj = count-1;
 
+
+tic
 M_all = [];
 for ii = 1:numproj
     M_all = cat(1, M_all, M{ii});
@@ -108,6 +116,7 @@ end
 proj_all = reshape(M_all*double(LAC(:)),[param.nu, param.nv, numproj]);
 figure;imshow3D(proj_all,[])
 
+toc
 
 % figure;gif('Projections.gif')
 % for ii = 1:numel(y_cpus)
@@ -132,12 +141,13 @@ gamma = 0;
 mu = 1e-05;
 
 
+tic
 x0 = x1;
 x0(x0>0.05) = 0.11;
 
 [x_TV, Maincost_TV] = IterRecon_TV_FISTA_BrachyCT (x0, M_all, y1_all(:), y2_all(:), y3_all(:), y4_all(:), gamma, mu, [param.nx, param.ny, param.nz]);
 
-
+toc
 
 
 
