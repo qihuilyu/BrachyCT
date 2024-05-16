@@ -1,6 +1,7 @@
 clear
 close all
 clc
+profile on
 
 patname = 'T2';
 datatestpath = fullfile('/Users/lyuqihui/Desktop/Data/HDRCT/Datatest/',patname);
@@ -16,11 +17,12 @@ offsetpix = 100;
 [CenterOfMass, FOV, deltax, deltay, deltaz]  = GetDwellPos(Mask_prostate,4,4,5,imgdx,imgdx,imgdz);
 
 Nfac = 1;
+NfacZ = 1;
 LAC = imresize(LAC_380keV,1/Nfac);
-LAC = LAC(:,:,1:Nfac:end);
+LAC = LAC(:,:,1:NfacZ:end);
 imgdx = imgdx*Nfac;
 imgdy = imgdy*Nfac;
-imgdz = imgdz*Nfac;
+imgdz = imgdz*NfacZ;
 imgsz = size(LAC);
 
 
@@ -70,7 +72,7 @@ param.vs0 = (-(param.nv-1)/2:1:(param.nv-1)/2)*param.dv + param.off_v;
 % load img128.mat % Ground-truth image
 % M = projection0(param);
 % testproj = reshape(M*double(img(:)),[param.nu, param.nv]);
-% 
+%
 % figure; imshow(testproj,[])
 
 %%
@@ -92,8 +94,11 @@ for dz = deltaz
             param.us = (-(param.nu-1)/2:1:(param.nu-1)/2)*param.du + param.off_u - dx;
             param.vs = (-(param.nv-1)/2:1:(param.nv-1)/2)*param.dv + param.off_v - dz;
 
-            M{count} = projection0(param, LAC);
-            proj(:,:,count) = reshape(M{count}*double(LAC(:)),[param.nu, param.nv]);
+            % M{count} = projection0(param, LAC);
+            % proj(:,:,count) = reshape(M{count}*double(LAC(:)),[param.nu, param.nv]);
+
+            proj(:,:,count) = projection0_Nomatrix(param, LAC);
+
 
             figure(1);imshow(proj(:,:,count),[])
             % pause(2)
@@ -127,13 +132,13 @@ toc
 
 %% Create projections
 x1 = LAC;
-y1_all = M_all*x1(:);  
+y1_all = M_all*x1(:);
 x2 = permute(LAC,[2,1,3]);
-y2_all = M_all*x2(:);  
+y2_all = M_all*x2(:);
 x3 = flip(x1,2);
 y3_all = M_all*x3(:);
 x4 = flip(x2,2);
-y4_all = M_all*x4(:);  
+y4_all = M_all*x4(:);
 
 %%
 
@@ -150,4 +155,4 @@ x0(x0>0.05) = 0.11;
 toc
 
 
-
+profile report

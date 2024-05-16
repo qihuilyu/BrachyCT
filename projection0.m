@@ -14,7 +14,7 @@ disttmp = dist';
 
 M = sparse(prod(szproj),nmimg);
 
-for iy = 1:param.ny
+parfor iy = 1:param.ny
 
     Ratio = (param.ys(iy)+param.DSO)/(param.DSD);
 

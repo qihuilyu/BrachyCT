@@ -35,10 +35,12 @@ mu = 1e-05;
 figure;imshow(img_TV,[])
 
 li_int = li;
-Ind = [1:450,550:size(li,1)];
+Ind = [1:370,630:size(li,1)];
 li_int(Ind,:) = 0;
+figure;imshow(li_int,[])
+
 img_fbp_int = em_fbp_QL(sg, ig, li_int);
-figure;imshow(img_fbp_int,[])
+figure;imshow(img_fbp_int,[0,0.15])
 
 gamma = 0;
 mu = 1e-05;
